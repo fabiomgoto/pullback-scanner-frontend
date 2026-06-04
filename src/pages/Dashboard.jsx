@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
-const API_URL = "http://localhost:3001/api"; // Alterar para URL do Railway em produção
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3001/api";
 
 // ── API SERVICE ───────────────────────────────────────────────────────────────
 async function apiFetch(path, options = {}) {
