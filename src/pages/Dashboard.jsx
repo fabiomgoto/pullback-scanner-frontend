@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
-const API_URL = "https://pullback-scanner-backend-production.up.railway.app/api"; // Alterar para URL do Railway em produção
+const API_URL = "http://localhost:3001/api"; // Alterar para URL do Railway em produção
 
 // ── API SERVICE ───────────────────────────────────────────────────────────────
 async function apiFetch(path, options = {}) {
@@ -25,6 +25,8 @@ const api = {
   getConfig:    ()   => apiFetch("/config"),
   updateConfig: (d)  => apiFetch("/config", { method: "PUT", body: JSON.stringify(d) }),
   health:       ()   => apiFetch("/health"),
+  getQuotes: (tickers) => apiFetch(`/quote?tickers=${tickers.join(",")}`),
+  getQuote:  (ticker)  => apiFetch(`/quote/${ticker}`),
 };
 
 // ── DEMO DATA (quando backend offline) ───────────────────────────────────────
@@ -199,7 +201,7 @@ function MacroBadge({ rating }) {
   );
 }
 
-function SignalCard({ signal, onIgnore, onDetail, delay = 0 }) {
+function SignalCard({ signal, liveQuote, onIgnore, onDetail, delay = 0 }) {
   const sc = scoreClass(signal.score_total);
   const sideColor = scoreColor(signal.score_total);
   const volRatio = signal.volume && signal.volume_avg20
@@ -248,20 +250,32 @@ function SignalCard({ signal, onIgnore, onDetail, delay = 0 }) {
         ))}
       </div>
 
-      {/* Preço + variação */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
-        padding: "10px 0", borderTop: `1px solid ${G.border}`, borderBottom: `1px solid ${G.border}`, marginBottom: 12 }}>
-        <div>
-          <div className="mono" style={{ fontSize: 9, color: G.muted, letterSpacing: "0.12em" }}>PREÇO ATUAL</div>
-          <div className="mono" style={{ fontSize: 17, fontWeight: 500 }}>{fmtBRL(signal.price)}</div>
+      {/* Preço fechamento + ao vivo */}
+      <div style={{ padding: "10px 0", borderTop: `1px solid ${G.border}`, borderBottom: `1px solid ${G.border}`, marginBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: liveQuote ? 6 : 0 }}>
+          <div>
+            <div className="mono" style={{ fontSize: 9, color: G.muted, letterSpacing: "0.12em" }}>FECHAMENTO</div>
+            <div className="mono" style={{ fontSize: 14, fontWeight: 500, color: G.muted }}>{fmtBRL(signal.price)}</div>
+          </div>
+          <div className="mono" style={{ fontSize: 11, padding: "3px 8px",
+            background: toNum(signal.price_change_pct) < 0 ? "rgba(255,77,109,0.1)" : "rgba(0,212,160,0.1)",
+            color: toNum(signal.price_change_pct) < 0 ? G.red : G.green }}>
+            {fmtPct(signal.price_change_pct)}
+          </div>
         </div>
-        <div className="mono" style={{
-          fontSize: 12, padding: "4px 10px",
-          background: toNum(signal.price_change_pct) < 0 ? "rgba(255,77,109,0.1)" : "rgba(0,212,160,0.1)",
-          color: toNum(signal.price_change_pct) < 0 ? G.red : G.green,
-        }}>
-          {fmtPct(signal.price_change_pct)}
-        </div>
+        {liveQuote && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div className="mono" style={{ fontSize: 9, color: G.green, letterSpacing: "0.12em" }}>● AO VIVO</div>
+              <div className="mono" style={{ fontSize: 19, fontWeight: 700 }}>{fmtBRL(liveQuote.price)}</div>
+            </div>
+            <div className="mono" style={{ fontSize: 12, padding: "4px 10px", fontWeight: 700,
+              background: liveQuote.changePct < 0 ? "rgba(255,77,109,0.1)" : "rgba(0,212,160,0.1)",
+              color: liveQuote.changePct < 0 ? G.red : G.green }}>
+              {liveQuote.changePct > 0 ? "+" : ""}{toNum(liveQuote.changePct)?.toFixed(2)}%
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Zona de entrada */}
@@ -604,6 +618,8 @@ export default function PullbackScanner() {
   const [isDemo, setIsDemo] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [filtro, setFiltro] = useState("todos");
+  const [liveQuotes, setLiveQuotes] = useState({});
+  const [liveLoading, setLiveLoading] = useState(false);
   const [selectedSignal, setSelectedSignal] = useState(null);
   const [apiUrl, setApiUrl] = useState(API_URL);
   const [showConfig, setShowConfig] = useState(false);
@@ -616,9 +632,11 @@ export default function PullbackScanner() {
         fetch(`${url}/signals`).then(r => r.json()),
         fetch(`${url}/macro`).then(r => r.json()).catch(() => null),
       ]);
-      setSignals(sinaisRes.signals || []);
+      const novos = sinaisRes.signals || [];
+      setSignals(novos);
       setMacro(macroRes);
       setIsDemo(false);
+      fetchLiveQuotes(novos);
       setLastUpdate(new Date());
     } catch {
       // Backend offline → modo demo
@@ -722,7 +740,7 @@ export default function PullbackScanner() {
                 background: "none", border: "none", outline: "none",
                 color: G.text, fontFamily: "JetBrains Mono, monospace", fontSize: 12, flex: 1,
               }}
-              placeholder="https://pullback-scanner-backend-production.up.railway.app/api"
+              placeholder="http://localhost:3001/api"
             />
           </div>
           <button className="btn btn-primary" onClick={handleScan} disabled={scanning || isDemo}>
@@ -811,6 +829,7 @@ export default function PullbackScanner() {
               <SignalCard
                 key={s.id}
                 signal={s}
+                liveQuote={liveQuotes[s.ticker]}
                 delay={i * 0.04}
                 onIgnore={handleIgnore}
                 onDetail={setSelectedSignal}
