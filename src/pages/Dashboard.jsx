@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3001/api";
+const API_URL = "http://localhost:3001/api"; // Alterar para URL do Railway em produção
 
 // ── API SERVICE ───────────────────────────────────────────────────────────────
 async function apiFetch(path, options = {}) {
@@ -342,7 +342,19 @@ function DetailModal({ signal, onClose }) {
             ))}
             {(signal.score_macro == null) && (
               <div className="mono" style={{ fontSize: 10, color: G.muted, marginTop: 4 }}>
-                Macro e Fundamentos disponíveis após Sprint 2 conectado
+                Dados de macro e fundamentos não disponíveis para este sinal
+              </div>
+            )}
+            {signal.macro_context && (
+              <div style={{ marginTop: 12, padding: "10px 14px", background: "rgba(77,159,255,0.06)", borderLeft: "2px solid " + G.blue }}>
+                <div className="mono" style={{ fontSize: 9, color: G.muted, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 6 }}>Contexto macro</div>
+                <div style={{ fontSize: 12, color: "#8a9aaa", lineHeight: 1.6 }}>{signal.macro_context}</div>
+              </div>
+            )}
+            {signal.fundamentals_summary && (
+              <div style={{ marginTop: 8, padding: "10px 14px", background: "rgba(245,200,66,0.06)", borderLeft: "2px solid " + G.yellow }}>
+                <div className="mono" style={{ fontSize: 9, color: G.muted, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 6 }}>Fundamentos</div>
+                <div style={{ fontSize: 12, color: "#8a9aaa", lineHeight: 1.6 }}>{signal.fundamentals_summary}</div>
               </div>
             )}
           </Section>
