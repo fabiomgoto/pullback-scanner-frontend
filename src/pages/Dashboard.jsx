@@ -642,7 +642,8 @@ export default function PullbackScanner() {
       // Backend offline → modo demo
       setSignals(gerarDemoSignals());
       setMacro({ selic: 13.75, usd_brl: 5.18, ibov_5d_change: -0.8, macro_rating: "neutral", macro_events: "Backend conectado" });
-      setIsDemo(true);
+      // Tenta novamente em 3s antes de ir para demo
+setTimeout(() => fetchData(apiUrl), 3000);
       setLastUpdate(new Date());
     } finally {
       setLoading(false);
