@@ -695,11 +695,6 @@ export default function PullbackScanner() {
           <div style={{ fontWeight: 700, fontSize: 15, letterSpacing: "0.04em" }}>
             Pullback<span style={{ color: G.green }}>Scanner</span> B3
           </div>
-          {isDemo && (
-            <span className="tag" style={{ borderColor: "rgba(245,200,66,0.4)", color: G.yellow, background: "rgba(245,200,66,0.08)" }}>
-              DEMO
-            </span>
-          )}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
