@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
-const API_URL = "http://localhost:3001/api"; // Alterar para URL do Railway em produção
+const API_URL = "https://pullback-scanner-backend-production.up.railway.app/api"; // Alterar para URL do Railway em produção
 
 // ── API SERVICE ───────────────────────────────────────────────────────────────
 async function apiFetch(path, options = {}) {
@@ -722,7 +722,7 @@ export default function PullbackScanner() {
                 background: "none", border: "none", outline: "none",
                 color: G.text, fontFamily: "JetBrains Mono, monospace", fontSize: 12, flex: 1,
               }}
-              placeholder="http://localhost:3001/api"
+              placeholder="https://pullback-scanner-backend-production.up.railway.app/api"
             />
           </div>
           <button className="btn btn-primary" onClick={handleScan} disabled={scanning || isDemo}>
