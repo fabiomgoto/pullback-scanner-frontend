@@ -624,6 +624,30 @@ export default function PullbackScanner() {
   const [apiUrl, setApiUrl] = useState(API_URL);
   const [showConfig, setShowConfig] = useState(false);
 
+  const fetchLiveQuotes = useCallback(async (sinais) => {
+    if (!sinais.length) return;
+    setLiveLoading(true);
+    try {
+      const tickers = sinais.map(s => s.ticker);
+      const results = await Promise.allSettled(
+        tickers.map(ticker =>
+          fetch(`${apiUrl}/quote/${ticker}`).then(r => r.ok ? r.json() : null)
+        )
+      );
+      const map = {};
+      results.forEach((r, i) => {
+        if (r.status === "fulfilled" && r.value?.price) {
+          map[tickers[i]] = { price: r.value.price, changePct: r.value.changePct };
+        }
+      });
+      setLiveQuotes(map);
+    } catch {
+      // silencioso — preço ao vivo é opcional
+    } finally {
+      setLiveLoading(false);
+    }
+  }, [apiUrl]);
+
   const fetchData = useCallback(async (url = apiUrl) => {
     setLoading(true);
     setError(null);
