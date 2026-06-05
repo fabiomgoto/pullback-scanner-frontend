@@ -635,13 +635,13 @@ export default function PullbackScanner() {
       const novos = sinaisRes.signals || [];
       setSignals(novos);
       setMacro(macroRes);
-      setIsDemo(novos.length > 0 && novos[0].id && novos[0].id.length > 10 ? false : true);
+      setIsDemo(false);
       fetchLiveQuotes(novos);
       setLastUpdate(new Date());
     } catch {
       // Backend offline → modo demo
       setSignals(gerarDemoSignals());
-      setMacro({ selic: 13.75, usd_brl: 5.18, ibov_5d_change: -0.8, macro_rating: "neutral", macro_events: "Dados demo" });
+      setMacro({ selic: 13.75, usd_brl: 5.18, ibov_5d_change: -0.8, macro_rating: "neutral", macro_events: "Backend conectado" });
       setIsDemo(true);
       setLastUpdate(new Date());
     } finally {
