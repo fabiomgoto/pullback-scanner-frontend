@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import Rentabilidade from "./Rentabilidade";
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 const API_URL = "https://pullback-scanner-backend-production.up.railway.app/api"; // Alterar para URL do Railway em produção
@@ -623,6 +624,7 @@ export default function PullbackScanner() {
   const [selectedSignal, setSelectedSignal] = useState(null);
   const [apiUrl, setApiUrl] = useState(API_URL);
   const [showConfig, setShowConfig] = useState(false);
+  const [activeTab, setActiveTab] = useState("sinais");
 
   const fetchLiveQuotes = useCallback(async (sinais) => {
     if (!sinais.length) return;
@@ -762,111 +764,151 @@ export default function PullbackScanner() {
               placeholder="https://pullback-scanner-backend-production.up.railway.app/api"
             />
           </div>
-          <button className="btn btn-primary" onClick={handleScan} disabled={scanning || isDemo}>
-            {scanning ? "⟳ Varrendo..." : "▶ Nova Varredura"}
-          </button>
-          <button className="btn btn-ghost" onClick={() => fetchData()}>
-            ↻ Atualizar
-          </button>
+          {activeTab === "sinais" && (
+            <button className="btn btn-primary" onClick={handleScan} disabled={scanning || isDemo}>
+              {scanning ? "⟳ Varrendo..." : "▶ Nova Varredura"}
+            </button>
+          )}
+          {activeTab === "sinais" && (
+            <button className="btn btn-ghost" onClick={() => fetchData()}>
+              ↻ Atualizar
+            </button>
+          )}
         </div>
 
-        {/* LEGENDA */}
-        <LegendaPanel />
+        {/* TAB BAR */}
+        <div style={{
+          display: "flex", marginBottom: 28,
+          borderBottom: `1px solid ${G.border}`,
+        }}>
+          {[
+            { key: "sinais", label: "Pullbacks" },
+            { key: "rentabilidade", label: "Rentabilidade" },
+          ].map(t => (
+            <button
+              key={t.key}
+              onClick={() => setActiveTab(t.key)}
+              className="mono"
+              style={{
+                fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase",
+                padding: "10px 22px", background: "transparent", border: "none",
+                borderBottom: `2px solid ${activeTab === t.key ? G.green : "transparent"}`,
+                color: activeTab === t.key ? G.text : G.muted,
+                cursor: "pointer", marginBottom: -1,
+                transition: "color 0.15s, border-color 0.15s",
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
 
-        {/* MACRO PANEL */}
-        {macro && <MacroPanel macro={macro} />}
+        {/* ── SINAIS TAB ─────────────────────────────────────────────────────── */}
+        {activeTab === "sinais" && (
+          <>
+            {/* LEGENDA */}
+            <LegendaPanel />
 
-        {/* SUMMARY */}
-        {!loading && signals.length > 0 && (
-          <div style={{
-            display: "grid", gridTemplateColumns: "repeat(4,1fr)",
-            gap: 1, background: G.border, border: `1px solid ${G.border}`,
-            marginBottom: 24,
-          }}>
-            {[
-              { label: "Pullbacks detectados", value: signals.length, color: G.green },
-              { label: "Score alto (≥75)", value: signals.filter(s => Number(s.score_total) >= 75).length, color: G.green },
-              { label: "Score médio", value: avgScore, color: G.yellow },
-              { label: "Score máximo", value: maxScore, color: scoreColor(maxScore) },
-            ].map(({ label, value, color }) => (
-              <div key={label} style={{ background: G.surface, padding: "16px 20px" }}>
-                <div className="mono" style={{ fontSize: 9, color: G.muted, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 4 }}>{label}</div>
-                <div className="mono" style={{ fontSize: 24, fontWeight: 500, color }}>{value}</div>
+            {/* MACRO PANEL */}
+            {macro && <MacroPanel macro={macro} />}
+
+            {/* SUMMARY */}
+            {!loading && signals.length > 0 && (
+              <div style={{
+                display: "grid", gridTemplateColumns: "repeat(4,1fr)",
+                gap: 1, background: G.border, border: `1px solid ${G.border}`,
+                marginBottom: 24,
+              }}>
+                {[
+                  { label: "Pullbacks detectados", value: signals.length, color: G.green },
+                  { label: "Score alto (≥75)", value: signals.filter(s => Number(s.score_total) >= 75).length, color: G.green },
+                  { label: "Score médio", value: avgScore, color: G.yellow },
+                  { label: "Score máximo", value: maxScore, color: scoreColor(maxScore) },
+                ].map(({ label, value, color }) => (
+                  <div key={label} style={{ background: G.surface, padding: "16px 20px" }}>
+                    <div className="mono" style={{ fontSize: 9, color: G.muted, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 4 }}>{label}</div>
+                    <div className="mono" style={{ fontSize: 24, fontWeight: 500, color }}>{value}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+
+            {/* FILTROS */}
+            {signals.length > 0 && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+                <div style={{ fontSize: 18, fontWeight: 700, display: "flex", alignItems: "center", gap: 12 }}>
+                  Pullbacks Identificados
+                  <span className="mono" style={{
+                    fontSize: 12, padding: "4px 12px",
+                    background: "rgba(0,212,160,0.1)", color: G.green,
+                    border: "1px solid rgba(0,212,160,0.2)",
+                  }}>{signalsFiltrados.length}</span>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[
+                    { key: "todos", label: "Todos" },
+                    { key: "high", label: "Score alto ≥75" },
+                    { key: "medium", label: "Médio 50–74" },
+                  ].map(({ key, label }) => (
+                    <button key={key} onClick={() => setFiltro(key)}
+                      className="btn" style={{
+                        fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.1em",
+                        textTransform: "uppercase", padding: "7px 14px",
+                        border: `1px solid ${filtro === key ? G.green : G.border2}`,
+                        background: filtro === key ? "rgba(0,212,160,0.08)" : "transparent",
+                        color: filtro === key ? G.green : G.muted,
+                      }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* LOADING */}
+            {loading && (
+              <div style={{ textAlign: "center", padding: "80px 32px" }}>
+                <div style={{
+                  width: 40, height: 40, border: `3px solid ${G.border}`,
+                  borderTopColor: G.green, borderRadius: "50%",
+                  animation: "spin 0.8s linear infinite", margin: "0 auto 20px",
+                }} />
+                <div className="mono" style={{ fontSize: 12, color: G.muted }}>Conectando ao backend...</div>
+              </div>
+            )}
+
+            {/* GRID DE SINAIS */}
+            {!loading && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
+                {signalsFiltrados.map((s, i) => (
+                  <SignalCard
+                    key={s.id}
+                    signal={s}
+                    liveQuote={liveQuotes[s.ticker]}
+                    delay={i * 0.04}
+                    onIgnore={handleIgnore}
+                    onDetail={setSelectedSignal}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* EMPTY */}
+            {!loading && signals.length === 0 && (
+              <div style={{ textAlign: "center", padding: "80px 32px", color: G.muted }}>
+                <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }}>📡</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: G.text, opacity: 0.4, marginBottom: 8 }}>Nenhum pullback hoje</div>
+                <div className="mono" style={{ fontSize: 12 }}>
+                  {isDemo ? "Backend offline — usando dados demo" : "Execute uma varredura para analisar o mercado"}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
-        {/* FILTROS */}
-        {signals.length > 0 && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, display: "flex", alignItems: "center", gap: 12 }}>
-              Pullbacks Identificados
-              <span className="mono" style={{
-                fontSize: 12, padding: "4px 12px",
-                background: "rgba(0,212,160,0.1)", color: G.green,
-                border: "1px solid rgba(0,212,160,0.2)",
-              }}>{signalsFiltrados.length}</span>
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              {[
-                { key: "todos", label: "Todos" },
-                { key: "high", label: "Score alto ≥75" },
-                { key: "medium", label: "Médio 50–74" },
-              ].map(({ key, label }) => (
-                <button key={key} onClick={() => setFiltro(key)}
-                  className="btn" style={{
-                    fontFamily: "JetBrains Mono, monospace", fontSize: 10, letterSpacing: "0.1em",
-                    textTransform: "uppercase", padding: "7px 14px",
-                    border: `1px solid ${filtro === key ? G.green : G.border2}`,
-                    background: filtro === key ? "rgba(0,212,160,0.08)" : "transparent",
-                    color: filtro === key ? G.green : G.muted,
-                  }}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* ── RENTABILIDADE TAB ──────────────────────────────────────────────── */}
+        {activeTab === "rentabilidade" && <Rentabilidade apiUrl={apiUrl} />}
 
-        {/* LOADING */}
-        {loading && (
-          <div style={{ textAlign: "center", padding: "80px 32px" }}>
-            <div style={{
-              width: 40, height: 40, border: `3px solid ${G.border}`,
-              borderTopColor: G.green, borderRadius: "50%",
-              animation: "spin 0.8s linear infinite", margin: "0 auto 20px",
-            }} />
-            <div className="mono" style={{ fontSize: 12, color: G.muted }}>Conectando ao backend...</div>
-          </div>
-        )}
-
-        {/* GRID DE SINAIS */}
-        {!loading && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
-            {signalsFiltrados.map((s, i) => (
-              <SignalCard
-                key={s.id}
-                signal={s}
-                liveQuote={liveQuotes[s.ticker]}
-                delay={i * 0.04}
-                onIgnore={handleIgnore}
-                onDetail={setSelectedSignal}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* EMPTY */}
-        {!loading && signals.length === 0 && (
-          <div style={{ textAlign: "center", padding: "80px 32px", color: G.muted }}>
-            <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }}>📡</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: G.text, opacity: 0.4, marginBottom: 8 }}>Nenhum pullback hoje</div>
-            <div className="mono" style={{ fontSize: 12 }}>
-              {isDemo ? "Backend offline — usando dados demo" : "Execute uma varredura para analisar o mercado"}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* MODAL */}
